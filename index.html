@@ -1,0 +1,1023 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GBoS | Business Enterprise Intelligence 2023</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+
+<style>
+:root {
+  --navy:#10243a;
+  --blue:#1769aa;
+  --blue2:#2385cf;
+  --teal:#079b91;
+  --bg:#eef2f6;
+  --panel:#ffffff;
+  --line:#dce4ec;
+  --text:#243447;
+  --muted:#718096;
+  --green:#15966a;
+  --orange:#e99a27;
+  --red:#d94b4b;
+  --shadow:0 2px 10px rgba(20,40,60,.07);
+}
+* {box-sizing:border-box}
+html,body {margin:0;height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text);background:var(--bg)}
+body {overflow:hidden}
+button,input,select {font:inherit}
+button {cursor:pointer}
+.header {
+  height:64px;background:var(--navy);color:#fff;display:flex;
+  align-items:center;justify-content:space-between;padding:0 20px;
+  gap:12px;box-shadow:var(--shadow);position:relative;z-index:1000
+}
+.brand {display:flex;align-items:center;gap:12px;min-width:0}
+.brand-icon {
+  width:38px;height:38px;border-radius:10px;background:#1d78b8;
+  display:grid;place-items:center;font-size:18px
+}
+.brand h1 {font-size:16px;margin:0;font-weight:750;letter-spacing:.2px}
+.brand small {display:block;color:#b9c9d8;font-size:10px;margin-top:3px}
+.header-right {display:flex;align-items:center;gap:10px}
+.header-tag {font-size:11px;background:#ffffff18;padding:7px 10px;border-radius:20px}
+.header-btn {border:1px solid #ffffff55;background:transparent;color:#fff;border-radius:7px;padding:8px 11px;font-size:11px}
+.app {
+  height:calc(100vh - 64px);padding:10px;
+  display:grid;grid-template-columns:285px minmax(350px,1fr) 340px;
+  gap:10px;min-height:0
+}
+.panel {
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);min-height:0;overflow:hidden;display:flex;flex-direction:column
+}
+.panel-head {
+  padding:12px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  min-height:45px
+}
+.panel-head h2 {font-size:12px;text-transform:uppercase;letter-spacing:.7px;margin:0;color:var(--navy)}
+.panel-body {padding:12px;overflow-y:auto;min-height:0;flex:1}
+.section {margin-bottom:15px}
+.section-title {
+  font-size:10px;font-weight:800;color:#5d7185;text-transform:uppercase;
+  letter-spacing:.8px;margin:0 0 9px;padding-bottom:6px;border-bottom:1px solid #edf1f5
+}
+.field {margin-bottom:9px}
+.field label {display:block;font-size:10px;font-weight:700;color:#5e7083;margin-bottom:5px}
+.field input,.field select {
+  width:100%;height:34px;border:1px solid #d8e1ea;border-radius:6px;
+  padding:0 9px;background:#fff;color:var(--text);font-size:11px;outline:none
+}
+.field input:focus,.field select:focus {border-color:var(--blue);box-shadow:0 0 0 2px #1769aa18}
+.two {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn {
+  border:0;border-radius:6px;padding:9px 11px;font-size:11px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px
+}
+.btn-primary {background:var(--blue);color:#fff}
+.btn-primary:hover {background:#10578f}
+.btn-light {background:#edf3f8;color:#38516a;border:1px solid #dce5ed}
+.btn-green {background:var(--green);color:white}
+.btn-danger {background:#fff0f0;color:#b83d3d;border:1px solid #f2d0d0}
+.btn-block {width:100%}
+.btn-row {display:flex;gap:7px;flex-wrap:wrap}
+.note {font-size:10px;line-height:1.5;color:var(--muted)}
+.status {
+  padding:9px 10px;border-radius:7px;background:#f1f6fa;color:#526b80;
+  font-size:10px;line-height:1.45;border:1px solid #e1eaf1;overflow-wrap:anywhere
+}
+.status.good {background:#ecf8f2;color:#16754f;border-color:#ccebd9}
+.status.warn {background:#fff7e9;color:#966316;border-color:#f4e2bd}
+.status.error {background:#fff0f0;color:#a93232;border-color:#f0d0d0}
+.map-panel {position:relative}
+.map-toolbar {
+  min-height:45px;padding:7px 10px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:8px
+}
+.map-toolbar strong {font-size:12px;color:var(--navy)}
+.map-toolbar .map-actions {display:flex;gap:6px;align-items:center}
+.map-actions select {height:29px;border:1px solid var(--line);border-radius:5px;font-size:10px;padding:0 5px}
+#map {width:100%;flex:1;min-height:180px;background:#e8eef2}
+.map-footer {
+  padding:8px 11px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap
+}
+.legend {display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:10px;color:#5e7183}
+.legend-item {display:flex;align-items:center;gap:5px}
+.dot {width:9px;height:9px;border-radius:50%;display:inline-block}
+.map-status {font-size:10px;color:var(--muted)}
+.kpis {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.kpi {
+  border:1px solid var(--line);border-radius:8px;padding:10px;
+  background:linear-gradient(135deg,#fff,#f8fbfd);min-width:0
+}
+.kpi-label {font-size:9px;color:#718096;text-transform:uppercase;letter-spacing:.5px;font-weight:750}
+.kpi-value {font-size:22px;font-weight:800;color:var(--navy);margin-top:5px;overflow-wrap:anywhere}
+.kpi-sub {font-size:9px;color:#8a98a7;margin-top:3px}
+.chart-card {border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.chart-title {font-size:10px;font-weight:800;color:#465d73;margin:0 0 8px}
+.chart-wrap {height:180px;position:relative}
+.chart-wrap.tall {height:215px}
+.table-wrap {overflow:auto;max-height:260px;border:1px solid var(--line);border-radius:7px}
+table {width:100%;border-collapse:collapse;font-size:10px;white-space:nowrap}
+th {background:#f1f5f8;color:#52677c;position:sticky;top:0;z-index:1;text-align:left}
+th,td {padding:8px;border-bottom:1px solid #edf1f4}
+tr:hover td {background:#f7fafc}
+.pill {display:inline-block;padding:3px 6px;border-radius:20px;background:#eaf2f8;color:#285b82;font-size:9px}
+.footer {
+  padding:10px 14px;background:#10243a;color:#c7d5e2;
+  font-size:9px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap
+}
+.empty {padding:20px;text-align:center;color:#8191a1;font-size:11px}
+.hidden {display:none!important}
+.file-label {display:block;text-align:center;border:1px dashed #9db1c3;background:#f7fafc;padding:13px;border-radius:7px;font-size:11px;color:#45627d;cursor:pointer}
+.file-label:hover {background:#edf5fb;border-color:var(--blue)}
+#fileInput {display:none}
+.small-select {height:30px;border:1px solid var(--line);border-radius:5px;font-size:10px;padding:0 6px;max-width:130px}
+.admin-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.map-popup {font-size:11px;line-height:1.6;max-height:220px;overflow:auto}
+.map-popup b {color:#153e5d}
+@media(max-width:1100px) {
+  body {overflow:auto}
+  .app {height:auto;min-height:calc(100vh - 64px);grid-template-columns:250px minmax(320px,1fr)}
+  .analytics-panel {grid-column:1 / -1;min-height:480px}
+  .map-panel {min-height:570px}
+}
+@media(max-width:700px) {
+  .header {height:auto;min-height:60px;padding:10px}
+  .brand h1 {font-size:13px}
+  .header-tag {display:none}
+  .app {height:auto;display:flex;flex-direction:column;padding:7px}
+  .panel {min-height:300px}
+  .controls-panel {order:1}
+  .map-panel {order:2;min-height:520px}
+  .analytics-panel {order:3;min-height:650px}
+  #map {min-height:390px}
+}
+</style>
+</head>
+
+<body>
+<header class="header">
+  <div class="brand">
+    <div class="brand-icon"><i class="fa-solid fa-store"></i></div>
+    <div>
+      <h1>BUSINESS ENTERPRISE INTELLIGENCE</h1>
+      <small>EC_Business_Ent2023 • THE GAMBIA • GBoS GEOAI</small>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-tag"><i class="fa-solid fa-map-location-dot"></i> Spatial Business Analytics</span>
+    <button class="header-btn" onclick="resetDashboard()"><i class="fa-solid fa-rotate"></i> Reset</button>
+  </div>
+</header>
+
+<main class="app">
+
+<!-- LEFT: CONTROLS -->
+<section class="panel controls-panel">
+  <div class="panel-head">
+    <h2><i class="fa-solid fa-sliders"></i> Controls & Data</h2>
+    <span class="pill" id="recordBadge">No data</span>
+  </div>
+  <div class="panel-body">
+
+    <div class="section">
+      <div class="section-title">01 / Load business data</div>
+      <label class="file-label" for="fileInput">
+        <i class="fa-solid fa-cloud-arrow-up"></i><br>
+        <b>Upload EC_Business_Ent2023</b><br>
+        <span class="note">GeoJSON, JSON or CSV</span>
+      </label>
+      <input type="file" id="fileInput" accept=".geojson,.json,.csv">
+      <div style="height:8px"></div>
+      <div class="field">
+        <label>Optional repository data URL</label>
+        <input id="dataUrl" value="data/EC_Business_Ent2023.geojson" placeholder="data/EC_Business_Ent2023.geojson">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="loadFromUrl()">
+        <i class="fa-solid fa-link"></i> Load repository data
+      </button>
+      <div style="height:8px"></div>
+      <div id="loadStatus" class="status">Upload your exported EC_Business_Ent2023 GeoJSON or CSV file to begin.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">02 / Field configuration</div>
+      <div class="note" style="margin-bottom:8px">The dashboard attempts to identify fields automatically. Change them below if your source uses different field names.</div>
+      <div class="field"><label>Business / Enterprise name</label><select id="nameField"></select></div>
+      <div class="field"><label>Business category / Type</label><select id="categoryField"></select></div>
+      <div class="field"><label>Region / LGA</label><select id="regionField"></select></div>
+      <div class="field"><label>District</label><select id="districtField"></select></div>
+      <div class="field"><label>Ward</label><select id="wardField"></select></div>
+      <div class="field"><label>Settlement</label><select id="settlementField"></select></div>
+      <div class="two">
+        <div class="field"><label>Latitude field</label><select id="latField"></select></div>
+        <div class="field"><label>Longitude field</label><select id="lonField"></select></div>
+      </div>
+      <div class="field"><label>Numeric analysis field</label><select id="valueField"></select></div>
+      <button class="btn btn-light btn-block" onclick="applyFieldConfiguration()">
+        <i class="fa-solid fa-check"></i> Apply field configuration
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">03 / Administrative filters</div>
+      <div class="field"><label>Region / LGA</label><select id="regionFilter"><option value="">All regions / LGAs</option></select></div>
+      <div class="field"><label>District</label><select id="districtFilter"><option value="">All districts</option></select></div>
+      <div class="field"><label>Ward</label><select id="wardFilter"><option value="">All wards</option></select></div>
+      <div class="field"><label>Settlement</label><select id="settlementFilter"><option value="">All settlements</option></select></div>
+      <div class="field"><label>Business category</label><select id="categoryFilter"><option value="">All categories</option></select></div>
+      <div class="field"><label>Search business / attribute</label><input id="searchFilter" placeholder="Search name, code, address..."></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="applyFilters()"><i class="fa-solid fa-filter"></i> Apply</button>
+        <button class="btn btn-light" onclick="clearFilters()">Clear filters</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">04 / Map display</div>
+      <div class="field">
+        <label>Map visualization</label>
+        <select id="mapMode" onchange="renderMap()">
+          <option value="points">Business locations</option>
+          <option value="heat">Business concentration heatmap</option>
+          <option value="both">Points + heatmap</option>
+          <option value="geometry">Source geometry</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Point size</label>
+        <input id="pointSize" type="range" min="3" max="13" value="6" oninput="renderMap()">
+      </div>
+      <div class="field">
+        <label>Point colour by</label>
+        <select id="colourMode" onchange="renderMap()">
+          <option value="category">Business category</option>
+          <option value="region">Region / LGA</option>
+          <option value="single">Single colour</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">05 / Export</div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="exportCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+        <button class="btn btn-light" onclick="exportGeoJSON()"><i class="fa-solid fa-earth-africa"></i> GeoJSON</button>
+      </div>
+      <div style="height:7px"></div>
+      <button class="btn btn-light btn-block" onclick="window.print()"><i class="fa-solid fa-print"></i> Print dashboard / PDF</button>
+    </div>
+  </div>
+</section>
+
+<!-- CENTRE: MAP -->
+<section class="panel map-panel">
+  <div class="map-toolbar">
+    <strong><i class="fa-solid fa-map"></i> Business Enterprise Distribution Map</strong>
+    <div class="map-actions">
+      <select id="basemap" onchange="changeBasemap()">
+        <option value="street">Street</option>
+        <option value="satellite">Satellite</option>
+        <option value="terrain">Terrain</option>
+        <option value="light">Light</option>
+      </select>
+      <button class="btn btn-light" style="padding:6px 8px" onclick="zoomToData()" title="Zoom to data"><i class="fa-solid fa-expand"></i></button>
+    </div>
+  </div>
+  <div id="map"></div>
+  <div class="map-footer">
+    <div class="legend" id="mapLegend">
+      <span class="note">Load business data to display the map legend.</span>
+    </div>
+    <span class="map-status" id="mapStatus">Awaiting data</span>
+  </div>
+</section>
+
+<!-- RIGHT: ANALYTICS -->
+<section class="panel analytics-panel">
+  <div class="panel-head">
+    <h2><i class="fa-solid fa-chart-line"></i> Analytics & Insights</h2>
+    <span class="pill">2023</span>
+  </div>
+  <div class="panel-body">
+
+    <div class="section">
+      <div class="section-title">Business enterprise indicators</div>
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total records</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub">Filtered business records</div></div>
+        <div class="kpi"><div class="kpi-label">Mapped locations</div><div class="kpi-value" id="kpiMapped">0</div><div class="kpi-sub">Valid spatial features</div></div>
+        <div class="kpi"><div class="kpi-label">Business categories</div><div class="kpi-value" id="kpiCategories">0</div><div class="kpi-sub">Unique category values</div></div>
+        <div class="kpi"><div class="kpi-label">Administrative areas</div><div class="kpi-value" id="kpiAreas">0</div><div class="kpi-sub">Unique region / LGA values</div></div>
+        <div class="kpi"><div class="kpi-label">Missing coordinates</div><div class="kpi-value" id="kpiMissing">0</div><div class="kpi-sub">Records without valid location</div></div>
+        <div class="kpi"><div class="kpi-label">Numeric total</div><div class="kpi-value" id="kpiNumeric">—</div><div class="kpi-sub" id="numericLabel">Select a numeric field</div></div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Business records by category</div>
+      <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Business distribution by region / LGA</div>
+      <div class="chart-wrap"><canvas id="regionChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Numeric field distribution</div>
+      <div class="chart-wrap"><canvas id="numericChart"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Data quality assessment</div>
+      <div class="kpi" style="margin-bottom:8px">
+        <div class="kpi-label">Coordinate completeness</div>
+        <div class="kpi-value" id="qualityPct">—</div>
+        <div class="kpi-sub" id="qualityText">Awaiting data</div>
+      </div>
+      <div id="qualityDetails" class="status">Data quality information will appear after loading.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Business attribute table</div>
+      <div class="field"><input id="tableSearch" placeholder="Search within displayed table..." oninput="renderTable()"></div>
+      <div class="table-wrap">
+        <table>
+          <thead id="tableHead"><tr><th>Attributes</th></tr></thead>
+          <tbody id="tableBody"><tr><td class="empty">No records loaded</td></tr></tbody>
+        </table>
+      </div>
+      <div class="note" id="tableInfo" style="margin-top:7px">No data available.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Methodology & interpretation</div>
+      <div class="status">
+        This dashboard provides exploratory spatial analysis of the 2023 business enterprise dataset. Business counts represent records in the loaded dataset, not necessarily a verified estimate of all operating enterprises. Map patterns depend on the coordinate reference system, completeness and positional accuracy of the source data. Heatmap intensity represents relative spatial concentration of mapped records.
+      </div>
+    </div>
+
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <span>Produced by Ansu Singhateh | GIS Analyst | GIS / Cartography Unit | GBoS</span>
+  <span>GBoS GEOAI • Research and educational use</span>
+</footer>
+
+<script>
+/* =========================================================
+   GBoS GEOAI — EC_Business_Ent2023
+   Standalone browser dashboard
+   ========================================================= */
+
+let allFeatures = [];
+let filteredFeatures = [];
+let sourceType = "none";
+let sourceName = "";
+let fieldNames = [];
+let currentCharts = {};
+let geoLayer = null;
+let heatLayer = null;
+let markerLayer = null;
+let basemapLayer = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toLocaleString("en-US", {maximumFractionDigits:2});
+const clean = v => v === null || v === undefined ? "" : String(v).trim();
+const norm = v => clean(v).toLowerCase().replace(/[^a-z0-9]/g,"");
+
+const map = L.map("map", {zoomControl:true}).setView([13.45,-16.57], 8);
+
+const baseMaps = {
+  street: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom:19, attribution:"© OpenStreetMap"
+  }),
+  satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom:19, attribution:"Tiles © Esri"
+  }),
+  terrain: L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+    maxZoom:17, attribution:"© OpenTopoMap"
+  }),
+  light: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    attribution:"© OpenStreetMap © CARTO"
+  })
+};
+basemapLayer = baseMaps.street.addTo(map);
+
+function changeBasemap() {
+  Object.values(baseMaps).forEach(layer => {
+    if (map.hasLayer(layer)) map.removeLayer(layer);
+  });
+  basemapLayer = baseMaps[$("basemap").value] || baseMaps.street;
+  basemapLayer.addTo(map);
+}
+
+function setStatus(message, type="") {
+  const el = $("loadStatus");
+  el.className = "status " + type;
+  el.textContent = message;
+}
+
+$("fileInput").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const ext = file.name.toLowerCase().split(".").pop();
+    if (ext === "csv") {
+      const parsed = Papa.parse(text, {header:true, skipEmptyLines:true, dynamicTyping:false});
+      if (parsed.errors.length) console.warn(parsed.errors);
+      loadCSV(parsed.data, file.name);
+    } else {
+      loadGeoJSON(JSON.parse(text), file.name);
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus("Could not read this file. Check that it is valid GeoJSON, JSON or CSV. " + err.message, "error");
+  }
+});
+
+async function loadFromUrl() {
+  const url = $("dataUrl").value.trim();
+  if (!url) return setStatus("Enter a data URL first.", "warn");
+  setStatus("Loading " + url + " ...");
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("HTTP " + response.status + ". Check the file path and repository.");
+    const data = await response.json();
+    loadGeoJSON(data, url);
+  } catch (err) {
+    setStatus("Automatic loading failed: " + err.message + " Upload the GeoJSON file manually if needed.", "error");
+  }
+}
+
+function loadGeoJSON(data, name) {
+  let features = [];
+  if (data.type === "FeatureCollection" && Array.isArray(data.features)) {
+    features = data.features;
+  } else if (data.type === "Feature") {
+    features = [data];
+  } else if (Array.isArray(data)) {
+    features = data.map((row,i) => ({
+      type:"Feature", id:i, properties:row, geometry:null
+    }));
+  } else {
+    throw new Error("Unsupported GeoJSON structure.");
+  }
+
+  allFeatures = features.map((f,i) => ({
+    type:"Feature",
+    id:f.id ?? i,
+    properties:f.properties || {},
+    geometry:f.geometry || null
+  }));
+  sourceType = "geojson";
+  sourceName = name;
+  afterDataLoad();
+}
+
+function loadCSV(rows, name) {
+  allFeatures = rows.map((row,i) => ({
+    type:"Feature",
+    id:i,
+    properties:row,
+    geometry:null
+  }));
+  sourceType = "csv";
+  sourceName = name;
+  afterDataLoad();
+}
+
+function afterDataLoad() {
+  if (!allFeatures.length) {
+    setStatus("The file contains no usable records.", "error");
+    return;
+  }
+
+  fieldNames = [...new Set(allFeatures.flatMap(f => Object.keys(f.properties || {})))];
+  configureFieldSelectors();
+  populateFilterOptions();
+  applyFilters();
+  setStatus("Loaded " + fmt(allFeatures.length) + " records from " + sourceName, "good");
+  $("recordBadge").textContent = fmt(allFeatures.length) + " records";
+}
+
+function findField(candidates) {
+  const normalized = fieldNames.map(f => ({field:f, key:norm(f)}));
+  for (const candidate of candidates) {
+    const exact = normalized.find(x => x.key === norm(candidate));
+    if (exact) return exact.field;
+  }
+  for (const candidate of candidates) {
+    const partial = normalized.find(x => x.key.includes(norm(candidate)));
+    if (partial) return partial.field;
+  }
+  return "";
+}
+
+function fillFieldSelect(id, selected, includeNone=true) {
+  const select = $(id);
+  select.innerHTML = "";
+  if (includeNone) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "— Not selected —";
+    select.appendChild(opt);
+  }
+  fieldNames.forEach(field => {
+    const opt = document.createElement("option");
+    opt.value = field;
+    opt.textContent = field;
+    select.appendChild(opt);
+  });
+  if (selected && fieldNames.includes(selected)) select.value = selected;
+}
+
+function configureFieldSelectors() {
+  fillFieldSelect("nameField", findField(["business_name","enterprise_name","entity_name","business","name","establishment","trade_name","company_name"]));
+  fillFieldSelect("categoryField", findField(["business_type","business_category","enterprise_type","category","sector","activity","industry"]));
+  fillFieldSelect("regionField", findField(["region","lga","lganame","local_government_area","administrative_area"]));
+  fillFieldSelect("districtField", findField(["district","distname","district_name"]));
+  fillFieldSelect("wardField", findField(["ward","wardname","ward_name"]));
+  fillFieldSelect("settlementField", findField(["settlement","settlement_name","community","village","town"]));
+  fillFieldSelect("latField", findField(["latitude","lat","ycoord","y_coordinate","y"]));
+  fillFieldSelect("lonField", findField(["longitude","lon","long","xcoord","x_coordinate","x"]));
+
+  const numeric = fieldNames.find(field => {
+    const vals = allFeatures.slice(0,100).map(f => Number(f.properties[field]));
+    return vals.some(v => Number.isFinite(v) && clean(fallbackValue(v)) !== "");
+  }) || "";
+  fillFieldSelect("valueField", numeric);
+}
+
+function fallbackValue(v) { return Number.isFinite(v) ? String(v) : ""; }
+
+function applyFieldConfiguration() {
+  populateFilterOptions();
+  applyFilters();
+}
+
+function getField(id) {
+  return $(id).value || "";
+}
+
+function getProp(feature, field) {
+  if (!field) return "";
+  return feature.properties ? feature.properties[field] : "";
+}
+
+function getCoordinates(feature) {
+  const geom = feature.geometry;
+  if (geom && geom.type === "Point" && Array.isArray(geom.coordinates)) {
+    const lon = Number(geom.coordinates[0]);
+    const lat = Number(geom.coordinates[1]);
+    if (validLatLon(lat,lon)) return {lat,lon,source:"geometry"};
+  }
+
+  const latField = getField("latField");
+  const lonField = getField("lonField");
+  const lat = Number(getProp(feature,latField));
+  const lon = Number(getProp(feature,lonField));
+  if (latField && lonField && validLatLon(lat,lon)) return {lat,lon,source:"attributes"};
+  return null;
+}
+
+function validLatLon(lat,lon) {
+  return Number.isFinite(lat) && Number.isFinite(lon) &&
+    lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 &&
+    !(lat === 0 && lon === 0);
+}
+
+function getFeatureLabel(feature) {
+  const name = getProp(feature,getField("nameField"));
+  return clean(name) || clean(feature.id) || "Business record";
+}
+
+function uniqueValues(features, field) {
+  if (!field) return [];
+  return [...new Set(features.map(f => clean(getProp(f,field))).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b));
+}
+
+function populateSelect(id, values, firstLabel) {
+  const select = $(id);
+  const previous = select.value;
+  select.innerHTML = "";
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = firstLabel;
+  select.appendChild(first);
+  values.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
+  if (values.includes(previous)) select.value = previous;
+}
+
+function populateFilterOptions() {
+  const features = allFeatures;
+  populateSelect("regionFilter",uniqueValues(features,getField("regionField")),"All regions / LGAs");
+  populateSelect("districtFilter",uniqueValues(features,getField("districtField")),"All districts");
+  populateSelect("wardFilter",uniqueValues(features,getField("wardField")),"All wards");
+  populateSelect("settlementFilter",uniqueValues(features,getField("settlementField")),"All settlements");
+  populateSelect("categoryFilter",uniqueValues(features,getField("categoryField")),"All categories");
+}
+
+function applyFilters() {
+  const region = $("regionFilter").value;
+  const district = $("districtFilter").value;
+  const ward = $("wardFilter").value;
+  const settlement = $("settlementFilter").value;
+  const category = $("categoryFilter").value;
+  const search = $("searchFilter").value.toLowerCase().trim();
+
+  filteredFeatures = allFeatures.filter(f => {
+    if (region && clean(getProp(f,getField("regionField"))) !== region) return false;
+    if (district && clean(getProp(f,getField("districtField"))) !== district) return false;
+    if (ward && clean(getProp(f,getField("wardField"))) !== ward) return false;
+    if (settlement && clean(getProp(f,getField("settlementField"))) !== settlement) return false;
+    if (category && clean(getProp(f,getField("categoryField"))) !== category) return false;
+    if (search) {
+      const content = Object.values(f.properties || {}).join(" ").toLowerCase();
+      if (!content.includes(search)) return false;
+    }
+    return true;
+  });
+
+  updateDashboard();
+}
+
+function clearFilters() {
+  ["regionFilter","districtFilter","wardFilter","settlementFilter","categoryFilter","searchFilter","tableSearch"]
+    .forEach(id => $(id).value = "");
+  applyFilters();
+}
+
+function resetDashboard() {
+  clearFilters();
+  $("mapMode").value = "points";
+  $("colourMode").value = "category";
+  $("pointSize").value = 6;
+  $("basemap").value = "street";
+  changeBasemap();
+  renderMap();
+  map.setView([13.45,-16.57],8);
+}
+
+function updateDashboard() {
+  updateKPIs();
+  renderMap();
+  renderCharts();
+  renderTable();
+  updateQuality();
+  $("recordBadge").textContent = fmt(filteredFeatures.length) + " shown";
+}
+
+function updateKPIs() {
+  const features = filteredFeatures;
+  const mapped = features.filter(f => getCoordinates(f));
+  const categories = uniqueValues(features,getField("categoryField"));
+  const areas = uniqueValues(features,getField("regionField"));
+  const missing = features.length - mapped.length;
+
+  $("kpiTotal").textContent = fmt(features.length);
+  $("kpiMapped").textContent = fmt(mapped.length);
+  $("kpiCategories").textContent = fmt(categories.length);
+  $("kpiAreas").textContent = fmt(areas.length);
+  $("kpiMissing").textContent = fmt(missing);
+
+  const valueField = getField("valueField");
+  const values = valueField ? features.map(f => Number(getProp(f,valueField))).filter(Number.isFinite) : [];
+  $("kpiNumeric").textContent = values.length ? fmt(values.reduce((a,b)=>a+b,0)) : "—";
+  $("numericLabel").textContent = valueField ? "Sum of " + valueField : "Select a numeric field";
+}
+
+function updateQuality() {
+  const features = filteredFeatures;
+  const mapped = features.filter(f => getCoordinates(f)).length;
+  const pct = features.length ? mapped / features.length * 100 : 0;
+  $("qualityPct").textContent = features.length ? fmt(pct) + "%" : "—";
+  $("qualityText").textContent = fmt(mapped) + " of " + fmt(features.length) + " records have valid coordinates.";
+
+  const missing = features.length - mapped;
+  const noNameField = !getField("nameField");
+  const noAdminField = !getField("regionField");
+  const lines = [
+    "Records assessed: " + fmt(features.length),
+    "Valid mapped records: " + fmt(mapped),
+    "Records without valid coordinates: " + fmt(missing),
+    "Name field: " + (noNameField ? "not configured" : getField("nameField")),
+    "Administrative field: " + (noAdminField ? "not configured" : getField("regionField"))
+  ];
+  $("qualityDetails").textContent = lines.join(" • ");
+}
+
+function clearMapLayers() {
+  [geoLayer,heatLayer,markerLayer].forEach(layer => {
+    if (layer && map.hasLayer(layer)) map.removeLayer(layer);
+  });
+  geoLayer = heatLayer = markerLayer = null;
+}
+
+function categoryColour(value, index) {
+  const palette = ["#1769aa","#e68a2e","#15966a","#8056b3","#d34e61","#0c9eaa",
+                   "#7b8b35","#b15b32","#5576a8","#a64d9b","#4e8b8b","#7c6a55"];
+  if (!value) return "#1769aa";
+  let hash = 0;
+  for (let i=0;i<value.length;i++) hash = ((hash<<5)-hash)+value.charCodeAt(i);
+  return palette[Math.abs(hash)%palette.length];
+}
+
+function featureColour(feature,index) {
+  const mode = $("colourMode").value;
+  if (mode === "single") return "#1769aa";
+  const field = mode === "region" ? getField("regionField") : getField("categoryField");
+  const value = clean(getProp(feature,field));
+  return categoryColour(value,index);
+}
+
+function popupHTML(feature) {
+  const props = feature.properties || {};
+  const keys = Object.keys(props);
+  let html = '<div class="map-popup"><b>' + escapeHTML(getFeatureLabel(feature)) + '</b><hr style="border:0;border-top:1px solid #ddd">';
+  keys.slice(0,35).forEach(key => {
+    html += "<b>" + escapeHTML(key) + ":</b> " + escapeHTML(clean(props[key]) || "—") + "<br>";
+  });
+  if (keys.length > 35) html += "<i>Showing first 35 attributes</i>";
+  return html + "</div>";
+}
+
+function renderMap() {
+  clearMapLayers();
+  const mode = $("mapMode").value;
+  const pointSize = Number($("pointSize").value) || 6;
+  const points = filteredFeatures.map(f => ({feature:f,coord:getCoordinates(f)})).filter(x=>x.coord);
+
+  const pointFeatures = filteredFeatures.filter(f => {
+    const g = f.geometry;
+    return !g || g.type === "Point" || getCoordinates(f);
+  });
+
+  if (mode === "geometry" || mode === "points" || mode === "both") {
+    const withGeometry = filteredFeatures.filter(f => f.geometry);
+    if (withGeometry.length) {
+      geoLayer = L.geoJSON({
+        type:"FeatureCollection",features:withGeometry
+      },{
+        pointToLayer:(feature,latlng) => L.circleMarker(latlng,{
+          radius:pointSize,fillColor:featureColour(feature,0),color:"#fff",
+          weight:1,fillOpacity:.85
+        }),
+        style:feature => ({
+          color:featureColour(feature,0),weight:1.5,fillOpacity:.22,
+          fillColor:featureColour(feature,0)
+        }),
+        onEachFeature:(feature,layer)=>layer.bindPopup(popupHTML(feature))
+      }).addTo(map);
+    }
+  }
+
+  if (mode === "points" || mode === "both") {
+    markerLayer = L.layerGroup();
+    points.forEach((item,index) => {
+      const c = item.coord;
+      const marker = L.circleMarker([c.lat,c.lon],{
+        radius:pointSize,fillColor:featureColour(item.feature,index),
+        color:"#fff",weight:1,fillOpacity:.9
+      }).bindPopup(popupHTML(item.feature));
+      markerLayer.addLayer(marker);
+    });
+    markerLayer.addTo(map);
+  }
+
+  if (mode === "heat" || mode === "both") {
+    if (points.length && typeof L.heatLayer === "function") {
+      const heatData = points.map(x => [x.coord.lat,x.coord.lon,0.7]);
+      heatLayer = L.heatLayer(heatData,{
+        radius:27,blur:20,maxZoom:13,minOpacity:.35,
+        gradient:{0.2:"#2c7bb6",0.45:"#00a6ca",0.65:"#ffff8c",0.82:"#fdae61",1:"#d7191c"}
+      }).addTo(map);
+    }
+  }
+
+  const geometryCount = filteredFeatures.filter(f=>f.geometry).length;
+  $("mapStatus").textContent = fmt(filteredFeatures.length) + " records • " +
+    fmt(points.length) + " mapped • " + fmt(geometryCount) + " geometries";
+
+  updateLegend();
+}
+
+function updateLegend() {
+  const mode = $("colourMode").value;
+  const field = mode === "region" ? getField("regionField") : getField("categoryField");
+  const values = field ? uniqueValues(filteredFeatures,field) : [];
+  const legend = $("mapLegend");
+  if (mode === "single") {
+    legend.innerHTML = '<span class="legend-item"><i class="dot" style="background:#1769aa"></i> Business enterprise</span>';
+    return;
+  }
+  if (!values.length) {
+    legend.innerHTML = '<span class="note">No category / region values available for legend.</span>';
+    return;
+  }
+  legend.innerHTML = values.slice(0,10).map((v,i)=>
+    '<span class="legend-item"><i class="dot" style="background:'+categoryColour(v,i)+'"></i>'+escapeHTML(v)+'</span>'
+  ).join("");
+  if (values.length > 10) legend.innerHTML += '<span class="note">+'+(values.length-10)+' more</span>';
+}
+
+function zoomToData() {
+  if (geoLayer && geoLayer.getLayers().length) {
+    const bounds = geoLayer.getBounds();
+    if (bounds.isValid()) return map.fitBounds(bounds.pad(.08),{maxZoom:15});
+  }
+  const coords = filteredFeatures.map(getCoordinates).filter(Boolean);
+  if (!coords.length) return map.setView([13.45,-16.57],8);
+  const bounds = L.latLngBounds(coords.map(c=>[c.lat,c.lon]));
+  if (bounds.isValid()) map.fitBounds(bounds.pad(.1),{maxZoom:15});
+}
+
+function destroyChart(id) {
+  if (currentCharts[id]) {
+    currentCharts[id].destroy();
+    delete currentCharts[id];
+  }
+}
+
+function chartOptions(horizontal=false) {
+  return {
+    responsive:true,maintainAspectRatio:false,
+    indexAxis:horizontal ? "y" : "x",
+    plugins:{legend:{display:false},tooltip:{enabled:true}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:9},maxRotation:45}},
+      y:{beginAtZero:true,grid:{color:"#edf1f4"},ticks:{font:{size:9}}}
+    }
+  };
+}
+
+function countByField(features,field) {
+  const counts = {};
+  features.forEach(f => {
+    const v = clean(getProp(f,field)) || "Not specified";
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+}
+
+function renderCharts() {
+  const categoryField = getField("categoryField");
+  const regionField = getField("regionField");
+  const valueField = getField("valueField");
+
+  destroyChart("categoryChart");
+  destroyChart("regionChart");
+  destroyChart("numericChart");
+
+  const cat = categoryField ? countByField(filteredFeatures,categoryField).slice(0,10) : [];
+  currentCharts.categoryChart = new Chart($("categoryChart"),{
+    type:"bar",
+    data:{labels:cat.map(x=>x[0]),datasets:[{
+      data:cat.map(x=>x[1]),backgroundColor:"#2385cf",borderRadius:4
+    }]},
+    options:chartOptions(true)
+  });
+
+  const reg = regionField ? countByField(filteredFeatures,regionField).slice(0,12) : [];
+  currentCharts.regionChart = new Chart($("regionChart"),{
+    type:"bar",
+    data:{labels:reg.map(x=>x[0]),datasets:[{
+      data:reg.map(x=>x[1]),backgroundColor:"#079b91",borderRadius:4
+    }]},
+    options:chartOptions(true)
+  });
+
+  const nums = valueField ? filteredFeatures.map(f=>Number(getProp(f,valueField))).filter(Number.isFinite) : [];
+  const bins = buildHistogram(nums,8);
+  currentCharts.numericChart = new Chart($("numericChart"),{
+    type:"bar",
+    data:{labels:bins.labels,datasets:[{
+      data:bins.counts,backgroundColor:"#e99a27",borderRadius:3
+    }]},
+    options:chartOptions(false)
+  });
+}
+
+function buildHistogram(values,binCount) {
+  if (!values.length) return {labels:["No numeric data"],counts:[0]};
+  const min = Math.min(...values), max = Math.max(...values);
+  if (min === max) return {labels:[fmt(min)],counts:[values.length]};
+  const width = (max-min)/binCount;
+  const counts = Array(binCount).fill(0);
+  values.forEach(v=>{
+    const i = Math.min(binCount-1,Math.floor((v-min)/width));
+    counts[i]++;
+  });
+  const labels = counts.map((_,i)=>{
+    const a = min+i*width, b = a+width;
+    return fmt(a)+"–"+fmt(b);
+  });
+  return {labels,counts};
+}
+
+function renderTable() {
+  const body = $("tableBody");
+  const head = $("tableHead");
+  const query = $("tableSearch").value.toLowerCase().trim();
+  const rows = filteredFeatures.filter(f=>!query ||
+    Object.values(f.properties||{}).join(" ").toLowerCase().includes(query));
+  const keys = fieldNames.slice(0,12);
+
+  head.innerHTML = "<tr>" + keys.map(k=>"<th>"+escapeHTML(k)+"</th>").join("") + "</tr>";
+  const limit = 150;
+  body.innerHTML = rows.slice(0,limit).map(f=>{
+    return "<tr>" + keys.map(k=>"<td>"+escapeHTML(clean(getProp(f,k)) || "—")+"</td>").join("") + "</tr>";
+  }).join("");
+
+  if (!rows.length) body.innerHTML = '<tr><td class="empty" colspan="12">No matching records.</td></tr>';
+  $("tableInfo").textContent = "Showing " + fmt(Math.min(rows.length,limit)) + " of " + fmt(rows.length) +
+    " matching records. The table displays up to 12 source fields.";
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function downloadBlob(content,filename,type) {
+  const blob = new Blob([content],{type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV() {
+  if (!filteredFeatures.length) return alert("There are no filtered records to export.");
+  const rows = filteredFeatures.map(f=>({
+    ...f.properties,
+    __geometry_type:f.geometry ? f.geometry.type : "",
+    __latitude:getCoordinates(f)?.lat ?? "",
+    __longitude:getCoordinates(f)?.lon ?? ""
+  }));
+  const csv = Papa.unparse(rows);
+  downloadBlob(csv,"EC_Business_Ent2023_filtered.csv","text/csv;charset=utf-8;");
+}
+
+function exportGeoJSON() {
+  if (!filteredFeatures.length) return alert("There are no filtered records to export.");
+  const collection = {type:"FeatureCollection",features:filteredFeatures};
+  downloadBlob(JSON.stringify(collection,null,2),"EC_Business_Ent2023_filtered.geojson","application/geo+json");
+}
+
+/* Dependent administrative selectors: narrow options by parent selection. */
+["regionFilter","districtFilter","wardFilter"].forEach(id=>{
+  $(id).addEventListener("change",()=>{
+    if (id==="regionFilter") {
+      const r=$("regionFilter").value;
+      const subset=allFeatures.filter(f=>!r || clean(getProp(f,getField("regionField")))===r);
+      populateSelect("districtFilter",uniqueValues(subset,getField("districtField")),"All districts");
+      populateSelect("wardFilter",uniqueValues(subset,getField("wardField")),"All wards");
+    }
+    if (id==="districtFilter") {
+      const r=$("regionFilter").value,d=$("districtFilter").value;
+      const subset=allFeatures.filter(f=>
+        (!r || clean(getProp(f,getField("regionField")))===r) &&
+        (!d || clean(getProp(f,getField("districtField")))===d)
+      );
+      populateSelect("wardFilter",uniqueValues(subset,getField("wardField")),"All wards");
+    }
+  });
+});
+
+["regionFilter","districtFilter","wardFilter","settlementFilter","categoryFilter","searchFilter"]
+.forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")applyFilters()}));
+
+/* Start-up: optionally load the repository data file automatically. */
+window.addEventListener("load",()=>{
+  setTimeout(()=>{
+    const url=$("dataUrl").value.trim();
+    if (url) loadFromUrl();
+  },350);
+});
+</script>
+</body>
+</html>
